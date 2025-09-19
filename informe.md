@@ -260,9 +260,158 @@ El código **sí cumple** con el principio de sustitución de Liskov, ya que las
 **LSP:** Cumplido completamente. Las subclases respetan la herencia y pueden sustituir a la clase base sin inconvenientes.
 
 
+---
 
+# 🔧 Interface Segregation Principle (ISP)
+
+El **🎯 Principio de Segregación de Interfaces** establece que ningún cliente debería verse forzado a depender de métodos que no utiliza.  
+En lugar de crear interfaces grandes y monolíticas, debemos crear interfaces pequeñas y específicas.
+
+> 💬 "Los clientes no deberían verse obligados a depender de interfaces que no usan."
+
+---
+
+## 📌 Ejemplo: Sistema de Impresoras
+
+### ❌ Violando el ISP
+
+```typescript
+interface MultiFunctionDevice {
+  print(document: string): void;
+  scan(document: string): void;
+  fax(document: string): void;
+  photocopy(document: string): void;
+}
+
+class SimplePrinter implements MultiFunctionDevice {
+  print(document: string): void {
+    console.log(`🖨️ Printing: ${document}`);
+  }
+  
+  // ❌ Forzado a implementar métodos que no necesita
+  scan(document: string): void {
+    throw new Error("❌ Scan not supported");
+  }
+  
+  fax(document: string): void {
+    throw new Error("❌ Fax not supported");
+  }
+  
+  photocopy(document: string): void {
+    throw new Error("❌ Photocopy not supported");
+  }
+}
+
+class BasicScanner implements MultiFunctionDevice {
+  scan(document: string): void {
+    console.log(`📄 Scanning: ${document}`);
+  }
+  
+  // ❌ Forzado a implementar métodos que no necesita
+  print(document: string): void {
+    throw new Error("❌ Print not supported");
+  }
+  
+  fax(document: string): void {
+    throw new Error("❌ Fax not supported");
+  }
+  
+  photocopy(document: string): void {
+    throw new Error("❌ Photocopy not supported");
+  }
+}
+```
+
+### ✅ Aplicando el ISP
+
+```typescript
+// 🎯 Interfaces segregadas y específicas
+interface Printer {
+  print(document: string): void;
+}
+
+interface Scanner {
+  scan(document: string): void;
+}
+
+interface FaxMachine {
+  fax(document: string): void;
+}
+
+interface PhotoCopier {
+  photocopy(document: string): void;
+}
+
+// ✅ Implementaciones que solo dependen de lo que necesitan
+class SimplePrinter implements Printer {
+  print(document: string): void {
+    console.log(`🖨️ Printing: ${document}`);
+  }
+}
+
+class BasicScanner implements Scanner {
+  scan(document: string): void {
+    console.log(`📄 Scanning: ${document}`);
+  }
+}
+
+class PrinterScanner implements Printer, Scanner {
+  print(document: string): void {
+    console.log(`🖨️ Advanced printing: ${document}`);
+  }
+  
+  scan(document: string): void {
+    console.log(`📄 Advanced scanning: ${document}`);
+  }
+}
+
+class MultiFunctionDevice implements Printer, Scanner, FaxMachine, PhotoCopier {
+  print(document: string): void {
+    console.log(`🖨️ MFD printing: ${document}`);
+  }
+  
+  scan(document: string): void {
+    console.log(`📄 MFD scanning: ${document}`);
+  }
+  
+  fax(document: string): void {
+    console.log(`📠 MFD faxing: ${document}`);
+  }
+  
+  photocopy(document: string): void {
+    console.log(`📋 MFD photocopying: ${document}`);
+  }
+}
+
+// 💡 Uso flexible
+function processPrintJob(printer: Printer, document: string) {
+  printer.print(document); // 🎯 Solo necesita la capacidad de imprimir
+}
+
+function processScanJob(scanner: Scanner, document: string) {
+  scanner.scan(document); // 🎯 Solo necesita la capacidad de escanear
+}
+
+// 📝 Ejemplo de uso
+const simplePrinter = new SimplePrinter();
+const scanner = new BasicScanner();
+const mfd = new MultiFunctionDevice();
+
+processPrintJob(simplePrinter, "document1.pdf"); // ✅ Funciona
+processPrintJob(mfd, "document2.pdf");           // ✅ Funciona
+
+processScanJob(scanner, "photo.jpg");            // ✅ Funciona  
+processScanJob(mfd, "contract.pdf");             // ✅ Funciona
+```
+
+## 🎯 Beneficios del ISP
+
+- 🔄 **Flexibilidad**: Cada clase implementa solo lo que necesita
+- 🛠️ **Mantenibilidad**: Los cambios afectan menos componentes
+- ♻️ **Reutilización**: Interfaces pequeñas son más reutilizables
+- 🧩 **Composición**: Permite combinar múltiples capacidades según sea necesario
 
 
 
 # 🌟✨ Fin del Informe ✨🌟
-## ✨ ¡Gracias por ver uwu!
+## ✨ ¡Muchas tank you 
