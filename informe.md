@@ -210,5 +210,59 @@ class AuthService {
 ```
 ---
 
+
+
+# Informe de Principios SOLID en el Sistema de Reservas
+
+Este documento analiza el cumplimiento del código con dos principios SOLID:  
+- **Dependency Inversion Principle (DIP)**  
+- **Liskov Substitution Principle (LSP)**  
+
+---
+
+## 1. Liskov Substitution Principle (LSP)
+
+### Definición
+
+El LSP establece que:
+
+* Los objetos de una **subclase** deben poder reemplazar objetos de su **superclase** sin alterar el comportamiento esperado del programa.
+
+### Análisis en el código
+
+* `Usuarios`, `Reservas` e `Instalaciones` heredan de `Gestion<T>`.
+* Cada subclase puede **sustituir** a `Gestion<T>` ya que mantienen los mismos contratos (`agregar`, `buscarPorId`, `obtenerTodos`).
+* No existen métodos que rompan compatibilidad ni excepciones al sustituirlos.
+* Los métodos adicionales (`LoginUsuario`, `VerReservasPorUsuario`, etc.) **extienden** la funcionalidad pero no alteran la herencia ni contradicen las reglas de `Gestion<T>`.
+
+### Ejemplo
+
+```ts
+// Uso polimórfico
+function listarTodos<T extends { id: number }>(gestion: Gestion<T>) {
+    return gestion.obtenerTodos();
+}
+
+// Puede recibir Usuarios, Reservas o Instalaciones sin problema
+listarTodos(new Usuarios());
+listarTodos(new Reservas());
+listarTodos(new Instalaciones());
+```
+
+✅ **Conclusión LSP:**
+El código **sí cumple** con el principio de sustitución de Liskov, ya que las subclases pueden reemplazar a la superclase `Gestion<T>` sin problemas ni efectos inesperados.
+
+---
+
+# 📌 Conclusión General
+
+
+**LSP:** Cumplido completamente. Las subclases respetan la herencia y pueden sustituir a la clase base sin inconvenientes.
+
+
+
+
+
+
 # 🌟✨ Fin del Informe ✨🌟
 ## ✨ ¡Gracias por ver uwu!
