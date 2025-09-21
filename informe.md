@@ -14,59 +14,68 @@ esta es la parte que voy a subir:# 🏟️ Sistema de Reservas Deportivas - Apli
 
 
 ### ---
+# 📘 Informe SOLID (S — Responsabilidad Única)  
+*Proyecto: Sistema de Reservas Deportivo*  
 
-Sistema refactorizado aplicando correctamente el *Principio de Responsabilidad Única*.
+---
 
-## ❌ *Errores en el Código Original*
+## 1. 🏗️ Contexto  
+El *principio de responsabilidad única (SRP)* establece que *una clase debe tener una sola razón para cambiar*.  
 
-### *Problema: Clase Usuarios con Múltiples Responsabilidades*
+En este proyecto, el objetivo es revisar si cada clase del sistema cumple con este principio.  
 
-typescript
-class Usuarios extends Gestion<User> {
-    // ✅ Gestión de datos (CORRECTO)
-    obtenerUsuarioPorId(id: number): User | undefined { }
-    
-    // ❌ Autenticación (ERROR - responsabilidad extra)
-    LoginUsuario(creds: { email: string; password: string }) { }
-    
-    // ❌ Búsquedas especializadas (ERROR - responsabilidad extra)
-    VerUsuarioPorEmail(email: string) { }
+---
+
+## 2. 📦 Inventario de Clases  
+
+| Clase         | Ruta                        | Rol en el sistema |
+|---------------|-----------------------------|-------------------|
+| Gestion       | models/Gestion.ts           | CRUD genérico |
+| Instalaciones | models/Instalaciones.ts     | Manejo de instalaciones deportivas |
+| Reservas      | models/Reservas.ts          | Manejo de reservas |
+| Users         | models/Users.ts             | Manejo de usuarios y autenticación |
+
+---
+
+## 3. 🔍 Diagnóstico  
+
+- *Gestion.ts* → ✔ Cumple SRP (solo CRUD).  
+- *Instalaciones.ts* → ⚠ Parcial (mezcla almacenamiento y lógica de negocio).  
+- *Reservas.ts* → ⚠ Parcial (igual que Instalaciones).  
+- *Users.ts* → ❌ No cumple (mezcla datos de usuario con autenticación).  
+
+---
+
+## 4. 🔧 Refactorización propuesta  
+
+Separar responsabilidades en *repositorios* (datos) y *servicios* (lógica de negocio).  
+
+```ts
+// UserRepository.ts
+import Gestion from "./Gestion";
+
+class UserRepository extends Gestion<User> {
+  buscarPorEmail(email: string): User | undefined {
+    return this.items.find(u => u.email === email);
+  }
+}
+ts
+Copiar código
+// AuthService.ts
+import UserRepository from "./UserRepository";
+
+class AuthService {
+  constructor(private repo: UserRepository) {}
+
+  login(email: string, password: string): User | undefined {
+    const user = this.repo.buscarPorEmail(email);
+    if (user && user.password === password) return user;
+    return undefined;
+  }
 }
 
 
-*¿Por qué está mal?*
-- *3 razones diferentes para cambiar la clase:*
-  1. Cambios en almacenamiento de usuarios
-  2. Cambios en sistema de autenticación  
-  3. Cambios en criterios de búsqueda
-- *Violación SRP*: "Una clase = una responsabilidad"
-
-### *Problema: Clase Reservas Mezclando Datos y Lógica*
-
-typescript
-class Reservas extends Gestion<Reserva> {
-    // ❌ Lógica de negocio mezclada con datos
-    CancelarReserva(reservaId: number) {
-        const encontrada = this.buscarPorId(reservaId);
-        if (encontrada) {
-            encontrada.Estado = "Cancelado";  // ← Regla de negocio
-        }
-    }
-    
-    // ❌ Consultas especializadas mezcladas con datos
-    VerReservasPorUsuario(usuario: User) {
-        return this.items.filter(r => r.usuarioID === usuario.id);
-    }
-}
-
-
-*¿Por qué está mal?*
-- *Mezcla 3 tipos de responsabilidades:*
-  1. Gestión de datos
-  2. Lógica de negocio (cancelación)
-  3. Consultas complejas
-- Si cambian reglas de negocio → modificar clase de datos
-- Difícil de testear y mantener
+```
 
 ## ✅ *Solución: Clases con SRP Correctamente Aplicado*
 
@@ -404,14 +413,182 @@ processScanJob(scanner, "photo.jpg");            // ✅ Funciona
 processScanJob(mfd, "contract.pdf");             // ✅ Funciona
 ```
 
-## 🎯 Beneficios del ISP
 
-- 🔄 **Flexibilidad**: Cada clase implementa solo lo que necesita
-- 🛠️ **Mantenibilidad**: Los cambios afectan menos componentes
-- ♻️ **Reutilización**: Interfaces pequeñas son más reutilizables
-- 🧩 **Composición**: Permite combinar múltiples capacidades según sea necesario
+# 📘 Informe SOLID (D — Inversión de Dependencias)  
+*Proyecto: Sistema de Reservas Deportivo*  
+
+---
+
+## 1. Definición  
+
+El **Principio de Inversión de Dependencias (DIP)** establece que:  
+
+- Los **módulos de alto nivel** no deben depender de módulos de bajo nivel.  
+- Ambos deben depender de **abstracciones**.  
+- Las **abstracciones** no deben depender de los detalles; los **detalles dependen de las abstracciones**.  
+
+👉 En este proyecto se busca identificar si las clases dependen directamente de implementaciones concretas o de interfaces/abstracciones.  
+
+---
+
+## 2. Análisis en el código  
+
+- `Gestion.ts` → ✔ Usa una abstracción genérica (`T`) para CRUD.  
+- `Instalaciones.ts` → ⚠ Depende directamente de `Gestion`, no de una interfaz.  
+- `Reservas.ts` → ⚠ Igual que Instalaciones.  
+- `Users.ts` → ❌ Mezcla autenticación con datos, depende de implementación concreta sin interfaces.  
+
+---
+
+## 3. Ejemplos en el código  
+
+### ❌ Reservas (violando DIP)  
+
+```ts
+import Gestion from "./Gestion";
+import { User } from "./Users";
+
+type EstadoReserva = "Pendiente" | "Confirmado" | "Cancelado";
+
+type Reserva = {
+  id: number;
+  usuarioID: number;
+  InstalacionesID: number;
+  fecha: Date;
+  horaInicio: Date;
+  horaFin: Date;
+  Estado: EstadoReserva;
+};
+
+class Reservas extends Gestion<Reserva> {
+  CancelarReserva(reservaId: number) {
+    const encontrada = this.buscarPorId(reservaId);
+    if (encontrada) {
+      encontrada.Estado = "Cancelado";
+    }
+  }
+
+  VerReservasPorUsuario(usuario: User) {
+    return this.items.filter(r => r.usuarioID === usuario.id);
+  }
+}
+
+export { EstadoReserva, Reserva, Reservas };
+```
+### 💡 Solución: Separar persistencia en un repositorio diferente el cual se llame (IReservaRepository) y lógica en un servicio.
+
+```ts
+// IReservaRepository.ts
+import { Reserva } from "./Reservas";
+
+export interface IReservaRepository {
+  agregar(reserva: Reserva): void;
+  buscarPorId(id: number): Reserva | undefined;
+  obtenerTodos(): Reserva[];
+  buscarPorUsuario(usuarioId: number): Reserva[];
+}
+ts
+// ReservaRepository.ts
+import Gestion from "./Gestion";
+import { Reserva } from "./Reservas";
+import { IReservaRepository } from "./IReservaRepository";
+
+export class ReservaRepository
+  extends Gestion<Reserva>
+  implements IReservaRepository
+{
+  buscarPorUsuario(usuarioId: number): Reserva[] {
+    return this.items.filter(r => r.usuarioID === usuarioId);
+  }
+}
+ts
 
 
+// ReservaService.ts
+import { IReservaRepository } from "./IReservaRepository";
 
+export class ReservaService {
+  constructor(private repo: IReservaRepository) {}
+
+  cancelarReserva(reservaId: number) {
+    const encontrada = this.repo.buscarPorId(reservaId);
+    if (encontrada) {
+      encontrada.Estado = "Cancelado";
+    }
+  }
+
+  obtenerReservasDeUsuario(usuarioId: number) {
+    return this.repo.buscarPorUsuario(usuarioId);
+  }
+}
+```
+
+# ❌ Instalaciones (violando DIP) 
+
+```ts
+import Gestion from "./Gestion";
+
+type TipoDeporte =
+  | "Footbal"
+  | "Basquetbol"
+  | "Voleibol"
+  | "Tenis"
+  | "Natación"
+  | "Rugby"
+  | "Handball"
+  | "Hockey"
+  | "PingPong"
+  | "Bádminton";
+
+type Canchas = {
+  id: number;
+  nombre: string;
+  tipoDeporte: TipoDeporte;
+  precioHora: number;
+};
+
+class Instalaciones extends Gestion<Canchas> {}
+
+export { TipoDeporte, Canchas, Instalaciones };
+```
+## 💡 Solución: Definir IInstalacionRepository y usar un servicio para la lógica de negocio.
+
+
+```ts
+// IInstalacionRepository.ts
+import { Canchas } from "./Instalaciones";
+
+export interface IInstalacionRepository {
+  agregar(instalacion: Canchas): void;
+  buscarPorId(id: number): Canchas | undefined;
+  obtenerTodos(): Canchas[];
+}
+
+
+// InstalacionRepository.ts
+import Gestion from "./Gestion";
+import { Canchas } from "./Instalaciones";
+import { IInstalacionRepository } from "./IInstalacionRepository";
+
+export class InstalacionRepository
+  extends Gestion<Canchas>
+  implements IInstalacionRepository {}
+
+
+// InstalacionService.ts
+import { IInstalacionRepository } from "./IInstalacionRepository";
+
+export class InstalacionService {
+  constructor(private repo: IInstalacionRepository) {}
+
+  listarInstalaciones() {
+    return this.repo.obtenerTodos();
+  }
+
+  buscarInstalacion(id: number) {
+    return this.repo.buscarPorId(id);
+  }
+}
+```
 # 🌟✨ Fin del Informe ✨🌟
 ## ✨ ¡Muchas tank you 
