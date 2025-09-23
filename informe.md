@@ -1,4 +1,4 @@
-esta es la parte que voy a subir:# 🏟️ Sistema de Reservas Deportivas - Aplicando SRP
+# 🏟️ Sistema de Reservas Deportivas - Aplicando SRP
 
 
 ---
